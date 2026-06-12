@@ -1,52 +1,69 @@
 import { useEffect, useState } from "react";
-import api from "../api";
+import { useNavigate } from "react-router-dom";
+import { FiBook, FiPlusCircle } from "react-icons/fi";
 
+import BookCard from "../components/BookCard";
+import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
+import { BookCardSkeleton } from "../components/ui/Skeleton";
+import FadeIn from "../components/ui/FadeIn";
+
+import { useAuth } from "../context/AuthContext";
+import { getMyBooks } from "../api/books";
+import { notify } from "../lib/toast";
+
+// =========================================================================
+//  My Books — books the current user owns
+// =========================================================================
 export default function MyBooks() {
-    const [books, setBooks] = useState([]);
+  const { userId } = useAuth();
+  const navigate = useNavigate();
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const loadBooks = async () => {
-        try {
-            const userId = localStorage.getItem("userId");
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await getMyBooks(userId);
+        if (active) setBooks(data);
+      } catch {
+        notify.error("Couldn't load your books");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [userId]);
 
-            const response = await api.get(
-                `/books/my/${userId}`
-            );
-
-            console.log(response.data);
-
-            setBooks(response.data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    useEffect(() => {
-        loadBooks();
-    }, []);
-
-    return (
+  return (
+    <FadeIn>
+      <div className="page-header row-between wrap">
         <div>
-            <h1>My Books</h1>
-
-            {books.length === 0 ? (
-                <p>No Books Found</p>
-            ) : (
-                books.map((book) => (
-                    <div key={book.id}>
-                        <h3>{book.title}</h3>
-
-                        <p>Author: {book.author}</p>
-
-                        <p>Edition: {book.edition}</p>
-
-                        <p>Genre: {book.genre}</p>
-
-                        <p>Condition: {book.conditionType}</p>
-
-                        <hr />
-                    </div>
-                ))
-            )}
+          <h1 style={{ marginBottom: 8 }}>My books</h1>
+          <p style={{ margin: 0 }}>Everything you've shared with the community.</p>
         </div>
-    );
+        <Button variant="primary" onClick={() => navigate("/add-book")}>
+          <FiPlusCircle /> Add book
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="grid-cards">{Array.from({ length: 3 }).map((_, i) => <BookCardSkeleton key={i} />)}</div>
+      ) : books.length === 0 ? (
+        <EmptyState
+          icon={<FiBook />}
+          title="No books yet"
+          message="Add a book from your shelf and it'll show up here."
+          action={<Button variant="primary" onClick={() => navigate("/add-book")}><FiPlusCircle /> Add your first book</Button>}
+        />
+      ) : (
+        <div className="grid-cards">
+          {books.map((book) => (
+            <BookCard key={book.id} book={book} to={`/books/${book.id}`} />
+          ))}
+        </div>
+      )}
+    </FadeIn>
+  );
 }

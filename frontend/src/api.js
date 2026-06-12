@@ -1,7 +1,3 @@
-import axios from "axios";
-
-const api = axios.create({
-    baseURL: "http://localhost:8080/api",
-});
-
-export default api;
+// Backwards-compatible re-export. The configured axios instance now lives in
+// api/client.js; this keeps any old `import api from "../api"` working.
+export { default } from "./api/client";

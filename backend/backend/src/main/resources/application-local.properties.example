@@ -1,0 +1,17 @@
+# =========================================================================
+#  TEMPLATE for application-local.properties
+#  -----------------------------------------------------------------------
+#  Copy this file to `application-local.properties` (same folder) and fill
+#  in your own values. That copy is git-ignored, so your secrets stay local.
+# =========================================================================
+
+# --- Your local MySQL ---
+spring.datasource.url=jdbc:mysql://localhost:3306/book_swap?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+spring.datasource.username=root
+spring.datasource.password=YOUR_DB_PASSWORD
+
+# --- Gmail for OTP emails (optional) ---
+# Leave dev-mode=true to skip Gmail and use the on-screen dev code instead.
+spring.mail.username=your.email@gmail.com
+spring.mail.password=YOUR_16_CHAR_APP_PASSWORD_NO_SPACES
+app.otp.dev-mode=false

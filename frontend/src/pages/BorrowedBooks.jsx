@@ -1,42 +1,73 @@
 import { useEffect, useState } from "react";
-import api from "../api";
+import { FiRepeat } from "react-icons/fi";
 
+import BookCard from "../components/BookCard";
+import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
+import { BookCardSkeleton } from "../components/ui/Skeleton";
+import FadeIn from "../components/ui/FadeIn";
+
+import { useAuth } from "../context/AuthContext";
+import { getBorrowedBooks, returnBook } from "../api/books";
+import { notify } from "../lib/toast";
+
+// =========================================================================
+//  Borrowed Books — books currently borrowed, with a Return action
+// =========================================================================
 export default function BorrowedBooks() {
-    const [books, setBooks] = useState([]);
+  const { userId } = useAuth();
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const userId = localStorage.getItem("userId");
+  const load = async () => {
+    try {
+      const data = await getBorrowedBooks(userId);
+      setBooks(data);
+    } catch {
+      notify.error("Couldn't load borrowed books");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const loadBooks = async () => {
-        const res = await api.get(
-            `/books/borrowed/${userId}`
-        );
-        setBooks(res.data);
-    };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
-    const returnBook = async (bookId) => {
-        await api.put(`/books/return/${bookId}`);
-        alert("Book Returned");
-        loadBooks();
-    };
+  const handleReturn = async (bookId) => {
+    try {
+      await returnBook(bookId);
+      notify.success("Book returned");
+      load();
+    } catch {
+      notify.error("Could not return the book");
+    }
+  };
 
-    useEffect(() => {
-        loadBooks();
-    }, []);
+  return (
+    <FadeIn>
+      <div className="page-header">
+        <h1 style={{ marginBottom: 8 }}>Borrowed books</h1>
+        <p>Books you've borrowed. Return them when you're done.</p>
+      </div>
 
-    return (
-        <div>
-            <h1>Borrowed Books</h1>
-
-            {books.map((book) => (
-                <div key={book.id}>
-                    <h3>{book.title}</h3>
-                    <p>Owner: {book.owner?.name}</p>
-                    <button onClick={() => returnBook(book.id)}>
-                        Return Book
-                    </button>
-                    <hr />
-                </div>
-            ))}
+      {loading ? (
+        <div className="grid-cards">{Array.from({ length: 3 }).map((_, i) => <BookCardSkeleton key={i} />)}</div>
+      ) : books.length === 0 ? (
+        <EmptyState
+          icon={<FiRepeat />}
+          title="Nothing borrowed"
+          message="Books you borrow will appear here once a request is accepted."
+        />
+      ) : (
+        <div className="grid-cards">
+          {books.map((book) => (
+            <BookCard
+              key={book.id}
+              book={book}
+              actions={<Button variant="outline" block onClick={() => handleReturn(book.id)}>Return book</Button>}
+            />
+          ))}
         </div>
-    );
+      )}
+    </FadeIn>
+  );
 }
